@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>現值 (PV) 練習與計算器</title>
+  <style>
+    /* 選用標準 Sans-Serif 字體，確保 0 中間無點無斜線 */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background-color: #f4f6f9;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 750px;
+      width: 100%;
+      background: #ffffff;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    h2, h3 {
+      color: #1e293b;
+      margin-top: 0;
+    }
+
+    .control-panel {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      background: #f8fafc;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    select, button, input {
+      font-size: 15px;
+      padding: 8px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      outline: none;
+    }
+
+    button {
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #1d4ed8;
+    }
+
+    .btn-insert {
+      background-color: #059669;
+    }
+
+    .btn-insert:hover {
+      background-color: #047857;
+    }
+
+    .question-box {
+      background: #eff6ff;
+      border-left: 5px solid #2563eb;
+      padding: 15px 20px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+
+    .rate-info {
+      font-size: 18px;
+      font-weight: bold;
+      color: #1e3a8a;
+      margin-bottom: 12px;
+    }
+
+    .flow-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .flow-item {
+      font-size: 16px;
+      padding: 4px 0;
+    }
+
+    /* 折現因子輸入區 */
+    .factor-box {
+      background: #f1f5f9;
+      padding: 12px 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .factor-input-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .factor-label-d {
+      font-weight: bold;
+      font-size: 16px;
+      color: #1e293b;
+    }
+
+    .factor-input {
+      flex: 1;
+      background: #ffffff;
+      font-size: 15px;
+    }
+
+    .answer-section {
+      margin-bottom: 25px;
+    }
+
+    .answer-input-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .main-input {
+      flex: 1;
+      font-size: 16px;
+    }
+
+    .feedback {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    .feedback.correct {
+      background-color: #dcfce7;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+
+    .feedback.incorrect {
+      background-color: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+
+    .solution-step {
+      margin-top: 10px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #334155;
+    }
+
+    hr {
+      border: 0;
+      height: 1px;
+      background: #e2e8f0;
+      margin: 30px 0;
+    }
+
+    .custom-calc-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .custom-calc-table th, .custom-calc-table td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .custom-calc-table input {
+      width: 90%;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>現值 (PV) 練習與計算器</h2>
+
+  <!-- 控制選項 -->
+  <div class="control-panel">
+    <div class="control-group">
+      <label>現金流筆數：</label>
+      <select id="flowCount" onchange="generateQuestion()">
+        <option value="1">1 筆</option>
+        <option value="2">2 筆</option>
+        <option value="3" selected>3 筆</option>
+        <option value="4">4 筆</option>
+        <option value="5">5 筆</option>
+        <option value="6">6 筆</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>模式：</label>
+      <select id="flowType" onchange="generateQuestion()">
+        <option value="fixed">固定現金流</option>
+        <option value="variable">非固定現金流</option>
+      </select>
+    </div>
+
+    <button onclick="generateQuestion()">產生新題目</button>
+  </div>
+
+  <!-- 題目區塊 -->
+  <div class="question-box">
+    <div class="rate-info" id="rateDisplay">年利率：-% (每月複利)</div>
+    <ul class="flow-list" id="flowList"></ul>
+  </div>
+
+  <!-- 用家自訂折現因子輸入區 -->
+  <div class="factor-box">
+    <label for="factorInput"><strong>輸入自訂折現因子算式：</strong></label>
+    <div class="factor-input-group">
+      <span class="factor-label-d">d =</span>
+      <input type="text" id="factorInput" class="factor-input" placeholder="例如：1/(1+5.7%/12">
+      <button class="btn-insert" onclick="insertD()">插入 d</button>
+    </div>
+  </div>
+
+  <!-- 答題與計算輸入框 -->
+  <div class="answer-section">
+    <label for="answerInput"><strong>請計算總現值 (PV)：</strong></label>
+    <div class="answer-input-group">
+      <input type="text" id="answerInput" class="main-input" placeholder="例如：6000(d^3 + d^6 + d^9" onkeydown="handleKeyDown(event)">
+      <button onclick="checkAnswer()">提交答案</button>
+    </div>
+    <div style="font-size: 12px; color: #64748b; margin-top: 4px;">* 支援按 Enter 直接計算提交（兩輸入框最後的括號皆可省略）</div>
+
+    <!-- 反饋與解答區 -->
+    <div id="feedback" class="feedback"></div>
+  </div>
+
+  <hr>
+
+  <!-- 底部自訂計算器 -->
+  <h3>自訂現值計算器</h3>
+  <div style="margin-bottom: 15px;">
+    <label>年利率 (%)：</label>
+    <input type="number" id="customRate" value="5.0" step="0.1" style="width: 80px;" oninput="updateCustomCalc()">
+  </div>
+
+  <table class="custom-calc-table">
+    <thead>
+      <tr>
+        <th>期數 (月)</th>
+        <th>現金流金額 ($)</th>
+        <th>折現後現值 ($)</th>
+      </tr>
+    </thead>
+    <tbody id="customCalcBody">
+      <!-- 動態生成 6 筆 -->
+    </tbody>
+  </table>
+  <div style="margin-top: 15px; font-weight: bold; font-size: 18px;" id="customTotal">
+    總現值 (PV)：$0.00
+  </div>
+</div>
+
+<script>
+  let currentRate = 0;
+  let currentFlows = [];
+  let currentCorrectPV = 0;
+
+  // 自動補齊左右括號不對稱的輔助函數
+  function balanceParentheses(expr) {
+    let openCount = (expr.match(/\(/g) || []).length;
+    let closeCount = (expr.match(/\)/g) || []).length;
+    if (openCount > closeCount) {
+      expr += ')'.repeat(openCount - closeCount);
+    }
+    return expr;
+  }
+
+  // 安全計算算式（支援 d 變數代換、自動補齊括號、%, ^、隱式乘法）
+  function safeEval(expr) {
+    // 1. 自動補齊答案框省略的括號
+    let balancedExpr = balanceParentheses(expr);
+
+    // 2. 讀取並自動補齊折現因子框省略的括號
+    let factorExpr = document.getElementById("factorInput").value.trim();
+    let dVal = 1;
+    if (factorExpr) {
+      let balancedFactor = balanceParentheses(factorExpr);
+      let cleanFactor = balancedFactor
+        .replace(/(\d+(\.\d+)?)%/g, '($1/100)')
+        .replace(/\^/g, '**');
+      dVal = Function('"use strict"; return (' + cleanFactor + ')')();
+    }
+
+    // 3. 將 d 替代為數值，並處理運算符號
+    let clean = balancedExpr
+      .replace(/\bd\b/gi, `(${dVal})`)
+      .replace(/(\d+(\.\d+)?)%/g, '($1/100)')
+      .replace(/(\d+)\s*\(/g, '$1*(')
+      .replace(/\)\s*\(/g, ')*(')
+      .replace(/\^/g, '**');
+    
+    // 只允許安全字元
+    if (/[^0-9\.\+\-\*\/\(\)\s]/.test(clean)) {
+      throw new Error("非法字元");
+    }
+    return Function('"use strict"; return (' + clean + ')')();
+  }
+
+  // 產生新題目（隨機不重複月份）
+  function generateQuestion() {
+    const count = parseInt(document.getElementById("flowCount").value);
+    const type = document.getElementById("flowType").value;
+    
+    // 年利率 (1位小數 3.0% - 8.0%)
+    currentRate = (Math.floor(Math.random() * 51) + 30) / 10; 
+    const monthlyRate = currentRate / 100 / 12;
+
+    document.getElementById("rateDisplay").innerText = `年利率：${currentRate.toFixed(1)}% (每月複利)`;
+
+    // 隨機生成不重複的月份（1 ~ 24 個月之內）
+    let months = [];
+    while (months.length < count) {
+      let m = Math.floor(Math.random() * 24) + 1;
+      if (!months.includes(m)) {
+        months.push(m);
+      }
+    }
+    months.sort((a, b) => a - b); // 從小到大排序
+
+    currentFlows = [];
+    const flowListEl = document.getElementById("flowList");
+    flowListEl.innerHTML = "";
+
+    const baseAmount = Math.floor(Math.random() * 20 + 5) * 1000;
+
+    currentCorrectPV = 0;
+    for (let i = 0; i < count; i++) {
+      const month = months[i];
+      const amount = type === "fixed" ? baseAmount : Math.floor(Math.random() * 20 + 5) * 1000;
+      
+      currentFlows.push({ month, amount });
+
+      const pv = amount / Math.pow(1 + monthlyRate, month);
+      currentCorrectPV += pv;
+
+      const li = document.createElement("li");
+      li.className = "flow-item";
+      li.innerText = `${month} 個月後：$${amount.toLocaleString()}`;
+      flowListEl.appendChild(li);
+    }
+
+    // 產生新題目時：清空貼現因子輸入框、答案框與反饋結果
+    document.getElementById("factorInput").value = "";
+    document.getElementById("answerInput").value = "";
+    const feedbackEl = document.getElementById("feedback");
+    feedbackEl.style.display = "none";
+  }
+
+  // 插入字母 d 到答案框中
+  function insertD() {
+    const mainInput = document.getElementById("answerInput");
+    const start = mainInput.selectionStart;
+    const end = mainInput.selectionEnd;
+    const text = mainInput.value;
+
+    mainInput.value = text.substring(0, start) + "d" + text.substring(end);
+    mainInput.selectionStart = mainInput.selectionEnd = start + 1;
+    mainInput.focus();
+  }
+
+  // Enter 鍵處理
+  function handleKeyDown(event) {
+    if (event.key === "Enter") {
+      checkAnswer();
+    }
+  }
+
+  // 驗證答案
+  function checkAnswer() {
+    const inputStr = document.getElementById("answerInput").value.trim();
+    const feedbackEl = document.getElementById("feedback");
+
+    if (!inputStr) {
+      feedbackEl.className = "feedback incorrect";
+      feedbackEl.innerHTML = "請輸入算式或答案金額。";
+      feedbackEl.style.display = "block";
+      return;
+    }
+
+    try {
+      const userVal = safeEval(inputStr);
+      const diff = Math.abs(userVal - currentCorrectPV);
+
+      let stepHTML = "<div class='solution-step'><strong>詳細計算步驟：</strong><br>";
+      const mRate = currentRate / 100 / 12;
+      currentFlows.forEach(f => {
+        const p = f.amount / Math.pow(1 + mRate, f.month);
+        stepHTML += `$${f.amount.toLocaleString()} ÷ (1 + ${mRate.toFixed(6)})<sup>${f.month}</sup> = $${p.toFixed(2)}<br>`;
+      });
+      stepHTML += `<strong>正確總現值：$${currentCorrectPV.toFixed(2)}</strong></div>`;
+
+      if (diff < 2 || (userVal > 0 && diff / currentCorrectPV < 0.005)) {
+        feedbackEl.className = "feedback correct";
+        feedbackEl.innerHTML = `✓ 答案正確！ (您的計算結果：$${userVal.toFixed(2)})` + stepHTML;
+      } else {
+        feedbackEl.className = "feedback incorrect";
+        feedbackEl.innerHTML = `✕ 答案不正確。(您的計算結果：$${userVal.toFixed(2)})` + stepHTML;
+      }
+    } catch (e) {
+      feedbackEl.className = "feedback incorrect";
+      feedbackEl.innerHTML = "算式格式有誤，請檢查輸入（例如：6000(d^3 + d^6 + d^9）。";
+    }
+    feedbackEl.style.display = "block";
+  }
+
+  // 初始化底部自訂計算器
+  function initCustomCalc() {
+    const tbody = document.getElementById("customCalcBody");
+    tbody.innerHTML = "";
+    for (let i = 1; i <= 6; i++) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><input type="number" value="${i*3}" min="1" oninput="updateCustomCalc()" class="c-month"></td>
+        <td><input type="number" value="${i <= 3 ? 10000 : 0}" step="1000" oninput="updateCustomCalc()" class="c-amount"></td>
+        <td class="c-pv">$0.00</td>
+      `;
+      tbody.appendChild(tr);
+    }
+    updateCustomCalc();
+  }
+
+  // 更新自訂計算器
+  function updateCustomCalc() {
+    const rate = parseFloat(document.getElementById("customRate").value) || 0;
+    const mRate = rate / 100 / 12;
+
+    const months = document.querySelectorAll(".c-month");
+    const amounts = document.querySelectorAll(".c-amount");
+    const pvs = document.querySelectorAll(".c-pv");
+
+    let total = 0;
+    for (let i = 0; i < months.length; i++) {
+      const m = parseFloat(months[i].value) || 0;
+      const a = parseFloat(amounts[i].value) || 0;
+
+      if (m > 0 && a !== 0) {
+        const pv = a / Math.pow(1 + mRate, m);
+        pvs[i].innerText = `$${pv.toFixed(2)}`;
+        total += pv;
+      } else {
+        pvs[i].innerText = "$0.00";
+      }
+    }
+
+    document.getElementById("customTotal").innerText = `總現值 (PV)：$${total.toFixed(2)}`;
+  }
+
+  // 頁面載入執行
+  window.onload = function() {
+    generateQuestion();
+    initCustomCalc();
+  };
+</script>
+</body>
+</html>
