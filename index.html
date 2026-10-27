@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>現值 (PV) 練習與計算器</title>
   <style>
-    /* 選用標準 Sans-Serif 字體，確保 0 中間無點無斜線 */
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", sans-serif;
       background-color: #f4f6f9;
@@ -102,7 +101,6 @@
       padding: 4px 0;
     }
 
-    /* 折現因子輸入區 */
     .factor-box {
       background: #f1f5f9;
       padding: 12px 15px;
@@ -235,7 +233,7 @@
     <label for="factorInput"><strong>輸入自訂折現因子算式：</strong></label>
     <div class="factor-input-group">
       <span class="factor-label-d">d =</span>
-      <input type="text" id="factorInput" class="factor-input" placeholder="例如：1/(1+5.7%/12">
+      <input type="text" id="factorInput" class="factor-input" placeholder="例如：1/(1+5.4%/12 或 1/(1+.054/12">
       <button class="btn-insert" onclick="insertD()">插入 d</button>
     </div>
   </div>
@@ -244,10 +242,10 @@
   <div class="answer-section">
     <label for="answerInput"><strong>請計算總現值 (PV)：</strong></label>
     <div class="answer-input-group">
-      <input type="text" id="answerInput" class="main-input" placeholder="例如：6000(d^3 + d^6 + d^9" onkeydown="handleKeyDown(event)">
+      <input type="text" id="answerInput" class="main-input" placeholder="例如：11000d^3 + 12000d^17 + 8000d^20" onkeydown="handleKeyDown(event)">
       <button onclick="checkAnswer()">提交答案</button>
     </div>
-    <div style="font-size: 12px; color: #64748b; margin-top: 4px;">* 支援按 Enter 直接計算提交（兩輸入框最後的括號皆可省略）</div>
+    <div style="font-size: 12px; color: #64748b; margin-top: 4px;">* 支援按 Enter 直接計算提交（兩輸入框最後的括號皆可省略，支援數字與 d 緊貼）</div>
 
     <!-- 反饋與解答區 -->
     <div id="feedback" class="feedback"></div>
@@ -284,7 +282,7 @@
   let currentFlows = [];
   let currentCorrectPV = 0;
 
-  // 自動補齊左右括號不對稱的輔助函數
+  // 自動補齊左右括號不對稱
   function balanceParentheses(expr) {
     let openCount = (expr.match(/\(/g) || []).length;
     let closeCount = (expr.match(/\)/g) || []).length;
@@ -294,49 +292,47 @@
     return expr;
   }
 
-  // 安全計算算式（支援 d 變數代換、自動補齊括號、%, ^、隱式乘法）
+  // 安全計算算式（支援數字與 d 緊貼、縮寫小數、隱式乘法、%, ^）
   function safeEval(expr) {
-    // 1. 自動補齊答案框省略的括號
     let balancedExpr = balanceParentheses(expr);
 
-    // 2. 讀取並自動補齊折現因子框省略的括號
+    // 處理 d 的算式
     let factorExpr = document.getElementById("factorInput").value.trim();
     let dVal = 1;
     if (factorExpr) {
       let balancedFactor = balanceParentheses(factorExpr);
       let cleanFactor = balancedFactor
+        .replace(/(^|[^0-9])\.(\d+)/g, '$10.$2') // .054 -> 0.054
         .replace(/(\d+(\.\d+)?)%/g, '($1/100)')
         .replace(/\^/g, '**');
       dVal = Function('"use strict"; return (' + cleanFactor + ')')();
     }
 
-    // 3. 將 d 替代為數值，並處理運算符號
+    // 替換算式中的 d 與運算符號
     let clean = balancedExpr
+      .replace(/(\d+)\s*d/gi, '$1*d')          // 11000d -> 11000*d
       .replace(/\bd\b/gi, `(${dVal})`)
+      .replace(/(^|[^0-9])\.(\d+)/g, '$10.$2') // .054 -> 0.054
       .replace(/(\d+(\.\d+)?)%/g, '($1/100)')
       .replace(/(\d+)\s*\(/g, '$1*(')
       .replace(/\)\s*\(/g, ')*(')
       .replace(/\^/g, '**');
-    
-    // 只允許安全字元
+
     if (/[^0-9\.\+\-\*\/\(\)\s]/.test(clean)) {
       throw new Error("非法字元");
     }
     return Function('"use strict"; return (' + clean + ')')();
   }
 
-  // 產生新題目（隨機不重複月份）
   function generateQuestion() {
     const count = parseInt(document.getElementById("flowCount").value);
     const type = document.getElementById("flowType").value;
     
-    // 年利率 (1位小數 3.0% - 8.0%)
     currentRate = (Math.floor(Math.random() * 51) + 30) / 10; 
     const monthlyRate = currentRate / 100 / 12;
 
     document.getElementById("rateDisplay").innerText = `年利率：${currentRate.toFixed(1)}% (每月複利)`;
 
-    // 隨機生成不重複的月份（1 ~ 24 個月之內）
     let months = [];
     while (months.length < count) {
       let m = Math.floor(Math.random() * 24) + 1;
@@ -344,7 +340,7 @@
         months.push(m);
       }
     }
-    months.sort((a, b) => a - b); // 從小到大排序
+    months.sort((a, b) => a - b);
 
     currentFlows = [];
     const flowListEl = document.getElementById("flowList");
@@ -368,14 +364,12 @@
       flowListEl.appendChild(li);
     }
 
-    // 產生新題目時：清空貼現因子輸入框、答案框與反饋結果
     document.getElementById("factorInput").value = "";
     document.getElementById("answerInput").value = "";
     const feedbackEl = document.getElementById("feedback");
     feedbackEl.style.display = "none";
   }
 
-  // 插入字母 d 到答案框中
   function insertD() {
     const mainInput = document.getElementById("answerInput");
     const start = mainInput.selectionStart;
@@ -387,14 +381,12 @@
     mainInput.focus();
   }
 
-  // Enter 鍵處理
   function handleKeyDown(event) {
     if (event.key === "Enter") {
       checkAnswer();
     }
   }
 
-  // 驗證答案
   function checkAnswer() {
     const inputStr = document.getElementById("answerInput").value.trim();
     const feedbackEl = document.getElementById("feedback");
@@ -427,12 +419,11 @@
       }
     } catch (e) {
       feedbackEl.className = "feedback incorrect";
-      feedbackEl.innerHTML = "算式格式有誤，請檢查輸入（例如：6000(d^3 + d^6 + d^9）。";
+      feedbackEl.innerHTML = "算式格式有誤，請檢查輸入（例如：11000d^3 + 12000d^17 + 8000d^20）。";
     }
     feedbackEl.style.display = "block";
   }
 
-  // 初始化底部自訂計算器
   function initCustomCalc() {
     const tbody = document.getElementById("customCalcBody");
     tbody.innerHTML = "";
@@ -448,7 +439,6 @@
     updateCustomCalc();
   }
 
-  // 更新自訂計算器
   function updateCustomCalc() {
     const rate = parseFloat(document.getElementById("customRate").value) || 0;
     const mRate = rate / 100 / 12;
@@ -474,7 +464,6 @@
     document.getElementById("customTotal").innerText = `總現值 (PV)：$${total.toFixed(2)}`;
   }
 
-  // 頁面載入執行
   window.onload = function() {
     generateQuestion();
     initCustomCalc();
