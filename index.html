@@ -233,7 +233,8 @@
     <label for="factorInput"><strong>輸入自訂折現因子算式：</strong></label>
     <div class="factor-input-group">
       <span class="factor-label-d">d =</span>
-      <input type="text" id="factorInput" class="factor-input" placeholder="例如：1/(1+5.4%/12 或 1/(1+.054/12">
+      <!-- 已加入 onkeydown 支援按 Enter 跳轉至下一個輸入框 -->
+      <input type="text" id="factorInput" class="factor-input" placeholder="例如：1/(1+5.4%/12 或 1/(1+.054/12" onkeydown="handleFactorKeyDown(event)">
       <button class="btn-insert" onclick="insertD()">插入 d</button>
     </div>
   </div>
@@ -379,6 +380,14 @@
     mainInput.value = text.substring(0, start) + "d" + text.substring(end);
     mainInput.selectionStart = mainInput.selectionEnd = start + 1;
     mainInput.focus();
+  }
+
+  // 處理第一個輸入框按 Enter 跳至第二個輸入框
+  function handleFactorKeyDown(event) {
+    if (event.key === "Enter") {
+      event.preventDefault(); // 防止預設行為
+      document.getElementById("answerInput").focus();
+    }
   }
 
   function handleKeyDown(event) {
